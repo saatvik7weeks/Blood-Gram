@@ -1,36 +1,49 @@
-const express = require('express')
-const app = express()
+const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
-const bcrypt = require ('bcrypt');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const User = require('./models/user');
+const app = express();
+
+app.use(express.json());
 app.use(cors({
-    origin: 'http://localhost:5000' 
-  }));
+  origin: 'http://localhost:3000' 
+}));
 
-  const JWT_SECRET = "your_secret_key";  
+const JWT_SECRET = 'your_secret_key';
 
-  app.post('/create',(req,res)=>{
-    bcrypt.genSalt (10,(err,salt)=>{
-        bcrypt.hash(req.body.password,salt,async(err,hash)=>{
-            let createuser = await userModel.create({
-                username:req.body.username,
-                email:req.body.email,
-                password:hash,
-                age:req.body.age,
-                bloodgroup:req.body.bloodgroup,
-                address:req.body.address,
-                gender:req.body.gender,
-                contact:req.body.contact
-            });
-            let token = jwt.sign({email:req.body.email},JWT_SECRET);
-            res.cookie("token",token);
-            res.redirect('/login');
-        });
-    })
-  })
+// Signup Route
+app.post('/create', async (req, res) => {
+    try {
+      console.log('Received data:', req.body);
+      const { username, email, password, bloodtype } = req.body;
+  
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        console.log('User already exists');
+        return res.status(400).json({ message: 'User already exists' });
+      }
+  
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = new User({
+        username,
+        email,
+        password: hashedPassword,
+        Bloodgroup: bloodtype, 
+      });
+  
+      await newUser.save();
+      console.log('User saved:', newUser);
+      res.status(201).json({ message: 'User created successfully' });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+  
+  
 
-
-
-app.listen (5000,()=>{
-    console.log("Server is running on port 3000")
-})
+app.listen(5000, () => {
+  console.log('Server is running on port 5000');
+});
